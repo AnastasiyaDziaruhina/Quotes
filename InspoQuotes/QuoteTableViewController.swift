@@ -6,8 +6,12 @@
 //
 
 import UIKit
+import StoreKit
 
-class QuoteTableViewController: UITableViewController {
+class QuoteTableViewController: UITableViewController, SKPaymentTransactionObserver {
+   
+    
+    let productID = ""
     
     var quotesToShow = [
             "Our greatest glory is not in never falling, but in rising every time we fall. — Confucius",
@@ -29,6 +33,8 @@ class QuoteTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        SKPaymentQueue.default().add(self)
 
     }
     
@@ -54,21 +60,75 @@ class QuoteTableViewController: UITableViewController {
     
         // #warning Incomplete implementation, return the number of rows
         
-        return quotesToShow.count ?? 1
+        return quotesToShow.count + 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let quotes = quotesToShow[indexPath.row]
-        
         let cell = tableView.dequeueReusableCell(withIdentifier: "QuoteCell", for: indexPath)
         
-        cell.textLabel?.text = quotes
-        cell.textLabel?.numberOfLines = 0
-
+        if indexPath.row < quotesToShow.count {
+            cell.textLabel?.text = quotesToShow[indexPath.row]
+            cell.textLabel?.numberOfLines = 0
+        } else {
+            cell.textLabel?.text = "Get more quotes"
+            cell.textLabel?.textColor = #colorLiteral(red: 0.5810584426, green: 0.1285524964, blue: 0.5745313764, alpha: 1)
+            cell.accessoryType = .disclosureIndicator
+        }
+        
         return cell
     }
 
+    //MARK: - Table view delegate methdos
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if indexPath.row == quotesToShow.count {
+            buyPremiumQuotes()
+        }
+        
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+    //MARK: - In-app purchase nethods
+    
+    func buyPremiumQuotes() {
+        if SKPaymentQueue.canMakePayments() {
+            // can make payments
+            
+            let paymentRequest = SKMutablePayment()
+            paymentRequest.productIdentifier = productID
+            SKPaymentQueue.default().add(paymentRequest)
+            
+        } else {
+            //can't make payments
+            
+        }
+        
+    }
+
+    func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
+        for transaction in transactions {
+            if transaction.transactionState == .purchased {
+                // user payment successful
+                print("payment ok")
+                
+                SKPaymentQueue.default().finishTransaction(transaction)
+                
+            } else if transaction.transactionState == .failed {
+                //payment failed
+                print("print not ok")
+                
+                if let error = transaction.error {
+                    let errorDescriptons = error.localizedDescription
+                    print("failed due to error \(errorDescriptons)")
+                }
+                
+                SKPaymentQueue.default().finishTransaction(transaction)
+
+            }
+        }
+    }
+    
+    
     @IBAction func restorePressed(_ sender: UIBarButtonItem) {
     }
     
